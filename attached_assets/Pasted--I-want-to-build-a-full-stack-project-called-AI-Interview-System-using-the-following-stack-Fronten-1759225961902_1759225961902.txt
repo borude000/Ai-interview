@@ -1,0 +1,138 @@
+"I want to build a full-stack project called AI Interview System using the following stack:
+
+Frontend: React (or Next.js) with Tailwind CSS
+
+Backend: Node.js + Express
+
+Database: MySQL (or PostgreSQL, any SQL-based DB)
+
+AI: Gemini Pro (for generating interview questions + analyzing answers)
+
+Speech-to-Text: Whisper (open-source) or Vosk (offline alternative)
+
+Report Generation: pdfkit / jsPDF
+
+Optional: WebRTC for live video/audio feed
+
+🔹 Features to Implement
+Core Features
+
+Candidate registration/login with SQL-based authentication.
+
+AI-generated OR predefined interview questions (stored in SQL DB).
+
+Candidate answers via speech → converted to text using Whisper/Vosk.
+
+Save questions + transcripts in SQL tables.
+
+Analysis & Reports
+
+Use Gemini Pro to evaluate answers (accuracy, grammar, completeness, sentiment).
+
+Scoring system (0–10 scale for each answer).
+
+Auto-generate report (summary + strengths + weaknesses + recommendation).
+
+Allow PDF download of the report.
+
+Advanced Features (Optional)
+
+Live feed (real-time transcription or WebRTC-based video).
+
+Multi-role access (Candidate, Admin/Interviewer).
+
+Question categories (Technical, HR, Aptitude).
+
+Dashboard with charts for performance analytics.
+
+🔹 SQL Database Schema (Suggested)
+
+Users Table
+
+user_id (PK)
+
+name
+
+email
+
+password_hash
+
+role (candidate/admin)
+
+Questions Table
+
+question_id (PK)
+
+category (technical/hr/aptitude)
+
+question_text
+
+created_by (admin/AI)
+
+Interviews Table
+
+interview_id (PK)
+
+user_id (FK → Users)
+
+start_time
+
+end_time
+
+Answers Table
+
+answer_id (PK)
+
+interview_id (FK → Interviews)
+
+question_id (FK → Questions)
+
+answer_text
+
+score_accuracy
+
+score_fluency
+
+score_completeness
+
+Reports Table
+
+report_id (PK)
+
+interview_id (FK → Interviews)
+
+overall_score
+
+strengths (text)
+
+weaknesses (text)
+
+recommendations (text)
+
+pdf_url (optional if stored)
+
+🔹 Deliverables Required
+
+SQL table creation scripts (DDL).
+
+Node.js backend APIs for:
+
+Register/login
+
+Fetch AI-generated questions (via Gemini Pro API)
+
+Save candidate answers
+
+Generate report (via Gemini Pro + scoring logic)
+
+Fetch/download reports
+
+React frontend (Candidate + Admin):
+
+Candidate → attempt interview (Q&A with STT)
+
+Admin → add/manage questions, view reports, dashboards
+
+Integration with Whisper/Vosk for speech-to-text.
+
+Report generation in PDF format.
