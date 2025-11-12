@@ -8,14 +8,7 @@ import { SidebarProvider, Sidebar, SidebarContent, SidebarGroup, SidebarGroupCon
 import { LayoutDashboard, ClipboardList, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import LoginPage from "@/pages/LoginPage";
-import DashboardPage from "@/pages/DashboardPage";
-import NewInterviewPage from "@/pages/NewInterviewPage";
-import InterviewSessionPage from "@/pages/InterviewSessionPage";
 import NotFound from "@/pages/not-found";
-import InterviewsListPage from "@/pages/InterviewsListPage";
-import InterviewDetailPage from "@/pages/InterviewDetailPage";
-import PracticeQuestionsPage from "@/pages/PracticeQuestionsPage";
-import ProgressPage from "@/pages/ProgressPage";
 import { useEffect, useState } from "react";
 
 const navItems = [
@@ -121,69 +114,11 @@ function Router() {
   return (
     <Switch>
       <Route path="/login">
-        <PublicRoute>
-          <LoginPage />
-        </PublicRoute>
-      </Route>
-      
-      <Route path="/dashboard">
-        <ProtectedRoute>
-          <AppLayout>
-            <DashboardPage />
-          </AppLayout>
-        </ProtectedRoute>
-      </Route>
-
-      <Route path="/interview/new">
-        <ProtectedRoute>
-          <AppLayout>
-            <NewInterviewPage />
-          </AppLayout>
-        </ProtectedRoute>
-      </Route>
-
-      <Route path="/interview/session">
-        <ProtectedRoute>
-          <AppLayout>
-            <InterviewSessionPage />
-          </AppLayout>
-        </ProtectedRoute>
-      </Route>
-
-      <Route path="/interviews">
-        <ProtectedRoute>
-          <AppLayout>
-            <InterviewsListPage />
-          </AppLayout>
-        </ProtectedRoute>
-      </Route>
-
-      <Route path="/interviews/:id">
-        <ProtectedRoute>
-          <AppLayout>
-            <InterviewDetailPage />
-          </AppLayout>
-        </ProtectedRoute>
-      </Route>
-
-      <Route path="/practice">
-        <ProtectedRoute>
-          <AppLayout>
-            <PracticeQuestionsPage />
-          </AppLayout>
-        </ProtectedRoute>
-      </Route>
-
-      <Route path="/progress">
-        <ProtectedRoute>
-          <AppLayout>
-            <ProgressPage />
-          </AppLayout>
-        </ProtectedRoute>
+        <LoginPage />
       </Route>
 
       <Route path="/">
-        <Redirect to="/dashboard" />
+        <Redirect to="/login" />
       </Route>
 
       <Route component={NotFound} />
