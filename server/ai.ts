@@ -36,28 +36,31 @@ function buildPrompt(context: { type: string; role?: string; techs?: string[]; d
   return prompt;
 }
 
-const openaiKey = process.env.OPENAI_API_KEY;
+const openaiKey = process.env.OPENAI_API_KEY || process.env.GEMINI_API_KEY;
+// If no API key is provided, don't throw during import — allow the server to run
+// (useful for serving only auth pages). Fall back to a simple local generator below.
 if (!openaiKey) {
-  throw new Error('OPENAI_API_KEY is not set in the environment variables');
+  console.warn('Warning: OPENAI_API_KEY (or GEMINI_API_KEY) is not set. AI features will be disabled and a simple fallback will be used.');
 }
-// Detect OpenRouter key pattern and configure baseURL accordingly
-const isOpenRouterKey = openaiKey.startsWith('sk-or-');
-const openai = new OpenAI({
-  apiKey: openaiKey,
-  baseURL: isOpenRouterKey ? 'https://openrouter.ai/api/v1' : undefined,
-  // Optional but recommended for OpenRouter best practices
-  defaultHeaders: isOpenRouterKey
-    ? {
-        'HTTP-Referer': 'http://localhost:3000',
-        'X-Title': 'InterviewPilot',
-      }
-    : undefined,
-});
+
+// Detect OpenRouter key pattern and configure baseURL accordingly (only when key exists)
+const isOpenRouterKey = openaiKey ? openaiKey.startsWith('sk-or-') : false;
+const openai = openaiKey
+  ? new OpenAI({
+      apiKey: openaiKey,
+      baseURL: isOpenRouterKey ? 'https://openrouter.ai/api/v1' : undefined,
+      defaultHeaders: isOpenRouterKey
+        ? {
+            'HTTP-Referer': 'http://localhost:3000',
+            'X-Title': 'InterviewPilot',
+          }
+        : undefined,
+    })
+  : undefined;
 
 export async function generateQuestion(context: any, messages: Message[]): Promise<string> {
   try {
     const systemPrompt = buildPrompt(context, []);
-
     if (openai) {
       const chatMessages: { role: 'system' | 'user' | 'assistant'; content: string }[] = [
         { role: 'system', content: systemPrompt },
@@ -76,9 +79,42 @@ export async function generateQuestion(context: any, messages: Message[]): Promi
       return text || 'Could you please clarify your last answer?';
     }
 
-    return 'Could you expand on that?';
+    // Fallback: no OpenAI client available — generate a simple question locally
+    // This keeps the app usable when API keys aren't configured (e.g., only auth is needed).
+    const fallback = fallbackGenerateQuestion(context, messages);
+    return fallback;
   } catch (error) {
     console.error('Error generating question from AI:', error);
     return 'I seem to be having trouble coming up with the next question. Could you please repeat your last answer?';
   }
+}
+
+function fallbackGenerateQuestion(context: any, messages: Message[]): string {
+  // If first message, return greeting similar to the prompt's guidance
+  if (!messages || messages.length === 0) {
+    return "Hi! How are you doing today? Shall we start the interview?";
+  }
+
+  // Simple rule-based question generator
+  const lvl = context?.difficulty || 'beginner';
+  const type = context?.type || 'hr';
+  const techs = Array.isArray(context?.techs) ? context.techs.join(', ') : context?.techs;
+
+  if (type === 'hr') {
+    const hrQuestions = [
+      'Tell me about a challenging project you worked on and how you handled it.',
+      'How do you handle feedback from teammates or managers?',
+      'Describe a time you had to resolve a conflict in a team.'
+    ];
+    return hrQuestions[Math.min(messages.length - 1, hrQuestions.length - 1)];
+  }
+
+  // Technical: vary by difficulty
+  if (lvl === 'beginner') {
+    return `Can you explain the difference between a stack and a queue?`;
+  }
+  if (lvl === 'intermediate') {
+    return `How would you design a simple REST API for a todo app? Outline the main endpoints and data model.`;
+  }
+  return `Describe how you would approach scaling a read-heavy web application.`;
 }
