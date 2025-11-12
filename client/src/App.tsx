@@ -1,35 +1,39 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, useLocation, Redirect } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/ThemeProvider";
-import { ThemeToggle } from "@/components/ThemeToggle";
-import { SidebarProvider, Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarTrigger } from "@/components/ui/sidebar";
-import { LayoutDashboard, ClipboardList, FileText, Settings, LogOut } from "lucide-react";
+import { SidebarProvider, Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
+import { LayoutDashboard, ClipboardList, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import LoginPage from "@/pages/LoginPage";
-import CandidateDashboard from "@/pages/CandidateDashboard";
-import InterviewPage from "@/pages/InterviewPage";
-import ReportPage from "@/pages/ReportPage";
-import AdminDashboard from "@/pages/AdminDashboard";
+import DashboardPage from "@/pages/DashboardPage";
+import NewInterviewPage from "@/pages/NewInterviewPage";
+import InterviewSessionPage from "@/pages/InterviewSessionPage";
 import NotFound from "@/pages/not-found";
-import { useLocation } from "wouter";
+import InterviewsListPage from "@/pages/InterviewsListPage";
+import InterviewDetailPage from "@/pages/InterviewDetailPage";
+import PracticeQuestionsPage from "@/pages/PracticeQuestionsPage";
+import ProgressPage from "@/pages/ProgressPage";
+import { useEffect, useState } from "react";
 
-const candidateItems = [
-  { title: "Dashboard", url: "/candidate", icon: LayoutDashboard },
-  { title: "My Interviews", url: "/candidate/interviews", icon: ClipboardList },
+const navItems = [
+  { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
+  { title: "Interviews", url: "/interviews", icon: ClipboardList },
+  { title: "Reports", url: "/reports", icon: FileText },
 ];
 
-const adminItems = [
-  { title: "Dashboard", url: "/admin", icon: LayoutDashboard },
-  { title: "Questions", url: "/admin/questions", icon: ClipboardList },
-  { title: "Reports", url: "/admin/reports", icon: FileText },
-];
-
-function AppSidebar({ role }: { role: "candidate" | "admin" }) {
+function AppSidebar() {
   const [location] = useLocation();
-  const items = role === "candidate" ? candidateItems : adminItems;
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    setIsAuthenticated(!!token);
+  }, [location]);
+
+  if (!isAuthenticated) return null;
 
   return (
     <Sidebar>
@@ -40,10 +44,10 @@ function AppSidebar({ role }: { role: "candidate" | "admin" }) {
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {items.map((item) => (
+              {navItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild isActive={location === item.url}>
-                    <a href={item.url} data-testid={`link-${item.title.toLowerCase().replace(/\s+/g, "-")}`}>
+                    <a href={item.url} data-testid={`link-${item.title.toLowerCase()}`}>
                       <item.icon className="h-4 w-4" />
                       <span>{item.title}</span>
                     </a>
@@ -53,87 +57,135 @@ function AppSidebar({ role }: { role: "candidate" | "admin" }) {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-
-        <SidebarGroup className="mt-auto">
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <a href="#" data-testid="link-settings">
-                    <Settings className="h-4 w-4" />
-                    <span>Settings</span>
-                  </a>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <a href="/" data-testid="link-logout">
-                    <LogOut className="h-4 w-4" />
-                    <span>Logout</span>
-                  </a>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
       </SidebarContent>
     </Sidebar>
   );
 }
 
-function DashboardLayout({ children, role }: { children: React.ReactNode; role: "candidate" | "admin" }) {
-  const style = {
-    "--sidebar-width": "16rem",
-    "--sidebar-width-icon": "3rem",
-  };
-
+function AppLayout({ children }: { children: React.ReactNode }) {
   return (
-    <SidebarProvider style={style as React.CSSProperties}>
-      <div className="flex h-screen w-full">
-        <AppSidebar role={role} />
-        <div className="flex flex-col flex-1 overflow-hidden">
-          <header className="flex items-center justify-between p-4 border-b gap-4">
-            <SidebarTrigger data-testid="button-sidebar-toggle" />
-            <ThemeToggle />
-          </header>
-          <main className="flex-1 overflow-auto p-8">
-            {children}
-          </main>
+    <div className="min-h-screen bg-background">
+      <SidebarProvider>
+        <div className="flex h-screen overflow-hidden">
+          <AppSidebar />
+          <div className="flex-1 overflow-auto">
+            <div className="p-6">{children}</div>
+          </div>
         </div>
-      </div>
-    </SidebarProvider>
+      </SidebarProvider>
+    </div>
   );
+}
+
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const [location] = useLocation();
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    setIsAuthenticated(!!token);
+  }, [location]);
+
+  if (isAuthenticated === null) {
+    return <div>Loading...</div>; // Or a loading spinner
+  }
+
+  if (!isAuthenticated) {
+    return <Redirect to="/login" />;
+  }
+
+  return <>{children}</>;
+}
+
+function PublicRoute({ children }: { children: React.ReactNode }) {
+  const [location] = useLocation();
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    setIsAuthenticated(!!token);
+  }, [location]);
+
+  if (isAuthenticated === null) {
+    return <div>Loading...</div>; // Or a loading spinner
+  }
+
+  if (isAuthenticated && location === '/login') {
+    return <Redirect to="/dashboard" />;
+  }
+
+  return <>{children}</>;
 }
 
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={LoginPage} />
-      
-      <Route path="/candidate">
-        <DashboardLayout role="candidate">
-          <CandidateDashboard />
-        </DashboardLayout>
+      <Route path="/login">
+        <PublicRoute>
+          <LoginPage />
+        </PublicRoute>
       </Route>
       
-      <Route path="/candidate/interview/:id">
-        <DashboardLayout role="candidate">
-          <InterviewPage />
-        </DashboardLayout>
+      <Route path="/dashboard">
+        <ProtectedRoute>
+          <AppLayout>
+            <DashboardPage />
+          </AppLayout>
+        </ProtectedRoute>
       </Route>
-      
-      <Route path="/candidate/report/:id">
-        <DashboardLayout role="candidate">
-          <ReportPage />
-        </DashboardLayout>
+
+      <Route path="/interview/new">
+        <ProtectedRoute>
+          <AppLayout>
+            <NewInterviewPage />
+          </AppLayout>
+        </ProtectedRoute>
       </Route>
-      
-      <Route path="/admin">
-        <DashboardLayout role="admin">
-          <AdminDashboard />
-        </DashboardLayout>
+
+      <Route path="/interview/session">
+        <ProtectedRoute>
+          <AppLayout>
+            <InterviewSessionPage />
+          </AppLayout>
+        </ProtectedRoute>
       </Route>
-      
+
+      <Route path="/interviews">
+        <ProtectedRoute>
+          <AppLayout>
+            <InterviewsListPage />
+          </AppLayout>
+        </ProtectedRoute>
+      </Route>
+
+      <Route path="/interviews/:id">
+        <ProtectedRoute>
+          <AppLayout>
+            <InterviewDetailPage />
+          </AppLayout>
+        </ProtectedRoute>
+      </Route>
+
+      <Route path="/practice">
+        <ProtectedRoute>
+          <AppLayout>
+            <PracticeQuestionsPage />
+          </AppLayout>
+        </ProtectedRoute>
+      </Route>
+
+      <Route path="/progress">
+        <ProtectedRoute>
+          <AppLayout>
+            <ProgressPage />
+          </AppLayout>
+        </ProtectedRoute>
+      </Route>
+
+      <Route path="/">
+        <Redirect to="/dashboard" />
+      </Route>
+
       <Route component={NotFound} />
     </Switch>
   );
@@ -144,8 +196,8 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <TooltipProvider>
-          <Toaster />
           <Router />
+          <Toaster />
         </TooltipProvider>
       </ThemeProvider>
     </QueryClientProvider>

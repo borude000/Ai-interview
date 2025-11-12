@@ -1,38 +1,114 @@
-import { useState } from "react";
+import { useState, FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-export function AuthForm() {
+// Simple toast function since we don't have the toast component
+const toast = (options: { title: string; description: string; variant?: string }) => {
+  console.log(`${options.title}: ${options.description}`);
+};
+
+interface AuthFormProps {
+  onAuthSuccess: () => void;
+}
+
+export function AuthForm({ onAuthSuccess }: AuthFormProps) {
   const [isLoading, setIsLoading] = useState(false);
-  const [loginEmail, setLoginEmail] = useState("");
+  const [loginUsername, setLoginUsername] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
-  const [signupName, setSignupName] = useState("");
-  const [signupEmail, setSignupEmail] = useState("");
+  const [signupUsername, setSignupUsername] = useState("");
   const [signupPassword, setSignupPassword] = useState("");
-  const [role, setRole] = useState("candidate");
+  const [error, setError] = useState<string | null>(null);
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleLogin = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
-    console.log("Login attempted:", { email: loginEmail });
-    setTimeout(() => {
+    setError(null);
+
+    try {
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          username: loginUsername,
+          password: loginPassword,
+        }),
+        credentials: "include",
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Login failed");
+      }
+
+      // Save the token to localStorage
+      localStorage.setItem("token", data.token);
+      
+      // Show success message
+      toast({
+        title: "Success",
+        description: "You have been logged in successfully!",
+      });
+
+      // Call the success handler to redirect
+      onAuthSuccess();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "An error occurred during login");
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : "Failed to login",
+        variant: "destructive",
+      });
+    } finally {
       setIsLoading(false);
-      console.log("Login successful");
-    }, 1000);
+    }
   };
 
-  const handleSignup = async (e: React.FormEvent) => {
+  const handleSignup = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
-    console.log("Signup attempted:", { name: signupName, email: signupEmail, role });
-    setTimeout(() => {
+    setError(null);
+
+    try {
+      const response = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          username: signupUsername,
+          password: signupPassword,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Signup failed");
+      }
+
+      // Auto-login after successful signup
+      await handleLogin(e);
+      
+      toast({
+        title: "Account created",
+        description: "Your account has been created successfully!",
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "An error occurred during signup");
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : "Failed to create account",
+        variant: "destructive",
+      });
+    } finally {
       setIsLoading(false);
-      console.log("Signup successful");
-    }, 1000);
+    }
   };
 
   return (
@@ -52,16 +128,21 @@ export function AuthForm() {
           </CardHeader>
           <form onSubmit={handleLogin}>
             <CardContent className="space-y-4">
+              {error && (
+                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+                  <span className="block sm:inline">{error}</span>
+                </div>
+              )}
               <div className="space-y-2">
-                <Label htmlFor="login-email">Email</Label>
+                <Label htmlFor="login-username">Username</Label>
                 <Input
-                  id="login-email"
-                  type="email"
-                  placeholder="you@example.com"
-                  value={loginEmail}
-                  onChange={(e) => setLoginEmail(e.target.value)}
+                  id="login-username"
+                  type="text"
+                  placeholder="Enter your username"
+                  value={loginUsername}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLoginUsername(e.target.value)}
                   required
-                  data-testid="input-login-email"
+                  data-testid="input-login-username"
                 />
               </div>
               <div className="space-y-2">
@@ -71,7 +152,7 @@ export function AuthForm() {
                   type="password"
                   placeholder="••••••••"
                   value={loginPassword}
-                  onChange={(e) => setLoginPassword(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLoginPassword(e.target.value)}
                   required
                   data-testid="input-login-password"
                 />
@@ -102,27 +183,15 @@ export function AuthForm() {
           <form onSubmit={handleSignup}>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="signup-name">Full Name</Label>
+                <Label htmlFor="signup-username">Username</Label>
                 <Input
-                  id="signup-name"
+                  id="signup-username"
                   type="text"
-                  placeholder="John Doe"
-                  value={signupName}
-                  onChange={(e) => setSignupName(e.target.value)}
+                  placeholder="Choose a username"
+                  value={signupUsername}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSignupUsername(e.target.value)}
                   required
-                  data-testid="input-signup-name"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="signup-email">Email</Label>
-                <Input
-                  id="signup-email"
-                  type="email"
-                  placeholder="you@example.com"
-                  value={signupEmail}
-                  onChange={(e) => setSignupEmail(e.target.value)}
-                  required
-                  data-testid="input-signup-email"
+                  data-testid="input-signup-username"
                 />
               </div>
               <div className="space-y-2">
@@ -132,22 +201,10 @@ export function AuthForm() {
                   type="password"
                   placeholder="••••••••"
                   value={signupPassword}
-                  onChange={(e) => setSignupPassword(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSignupPassword(e.target.value)}
                   required
                   data-testid="input-signup-password"
                 />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="role">Account Type</Label>
-                <Select value={role} onValueChange={setRole}>
-                  <SelectTrigger id="role" data-testid="select-role">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="candidate">Candidate</SelectItem>
-                    <SelectItem value="admin">Admin/Interviewer</SelectItem>
-                  </SelectContent>
-                </Select>
               </div>
             </CardContent>
             <CardFooter>

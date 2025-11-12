@@ -1,10 +1,27 @@
+import 'dotenv/config';
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import cors from "cors";
+import { runMigrations } from "./db/migrate";
+
+// Run database migrations before starting the server
+runMigrations().catch(err => {
+  console.error('Failed to run database migrations:', err);
+  process.exit(1);
+});
 
 const app = express();
+
+// Enable CORS for development
+app.use(cors({
+  origin: process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : undefined,
+  credentials: true
+}));
+
+// Parse JSON request bodies
 app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+app.use(express.urlencoded({ extended: true }));
 
 app.use((req, res, next) => {
   const start = Date.now();
@@ -63,8 +80,7 @@ app.use((req, res, next) => {
   const port = parseInt(process.env.PORT || '5000', 10);
   server.listen({
     port,
-    host: "0.0.0.0",
-    reusePort: true,
+    host: "127.0.0.1"
   }, () => {
     log(`serving on port ${port}`);
   });
