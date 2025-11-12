@@ -1,4 +1,5 @@
 import { useState, FormEvent } from "react";
+import { mockLogin, mockSignup } from "@/lib/mockAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,6 +29,17 @@ export function AuthForm({ onAuthSuccess }: AuthFormProps) {
     setError(null);
 
     try {
+      // If offline mock mode is enabled via Vite env, use local mock
+      const OFFLINE = import.meta.env.VITE_OFFLINE === 'true';
+      if (OFFLINE) {
+        const res = await mockLogin(loginUsername, loginPassword);
+        if (!res.ok) throw new Error(res.message || 'Login failed');
+        localStorage.setItem('token', res.token);
+        toast({ title: 'Success', description: 'You have been logged in successfully!' });
+        onAuthSuccess();
+        return;
+      }
+
       const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: {
@@ -75,6 +87,17 @@ export function AuthForm({ onAuthSuccess }: AuthFormProps) {
     setError(null);
 
     try {
+      const OFFLINE = import.meta.env.VITE_OFFLINE === 'true';
+      if (OFFLINE) {
+        const res = await mockSignup(signupUsername, signupPassword);
+        if (!res.ok) throw new Error(res.message || 'Signup failed');
+        // Auto-login: store token
+        localStorage.setItem('token', res.token);
+        toast({ title: 'Account created', description: 'Your account has been created successfully!' });
+        onAuthSuccess();
+        return;
+      }
+
       const response = await fetch("/api/auth/signup", {
         method: "POST",
         headers: {
@@ -93,7 +116,7 @@ export function AuthForm({ onAuthSuccess }: AuthFormProps) {
       }
 
       // Auto-login after successful signup
-      await handleLogin(e);
+      await handleLogin(e as any);
       
       toast({
         title: "Account created",
