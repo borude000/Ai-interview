@@ -1,7 +1,7 @@
 -- Interviews persistence
 CREATE TABLE IF NOT EXISTS interviews (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   type TEXT NOT NULL,             -- 'hr' | 'technical'
   role TEXT,
   techs TEXT,                     -- comma-separated
